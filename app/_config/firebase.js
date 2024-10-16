@@ -4,7 +4,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDUUf-zFrr9MD3qEwzyhndEkEqWkuLvmYg",
+  apiKey: process.env.NEXT_PUBLIC_API_KEY,
   authDomain: "sumit-s-project-4da32.firebaseapp.com",
   projectId: "sumit-s-project-4da32",
   storageBucket: "sumit-s-project-4da32.appspot.com",
