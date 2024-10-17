@@ -1,6 +1,7 @@
-'use client'
+'use client';
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db } from '../_config/firebase';
 import WorkoutChart from '../_components/WorkoutChart';
 import TimeSpentChart from '../_components/TimeSpentChart';
@@ -12,10 +13,13 @@ const DashBoard = () => {
     const [achievedGoals, setAchievedGoals] = useState(0);
     const [notAchievedGoals, setNotAchievedGoals] = useState(0);
     const [totalGoals, setTotalGoals] = useState(0);
+    const [userEmail, setUserEmail] = useState(null); 
+    const [loading, setLoading] = useState(true); 
 
-    const fetchWorkoutData = async () => {
+    const fetchWorkoutData = async (email) => {
         const workoutsCollection = collection(db, 'Workouts');
-        const workoutSnapshot = await getDocs(workoutsCollection);
+        const q = query(workoutsCollection, where('userEmail', '==', email));
+        const workoutSnapshot = await getDocs(q);
 
         let totalCaloriesBurned = 0;
         let totalMinutesSpent = 0;
@@ -30,9 +34,10 @@ const DashBoard = () => {
         setTotalTimeSpent(totalMinutesSpent);
     };
 
-    const fetchGoalsData = async () => {
+    const fetchGoalsData = async (email) => {
         const goalsCollection = collection(db, 'Goals');
-        const goalsSnapshot = await getDocs(goalsCollection);
+        const q = query(goalsCollection, where('userEmail', '==', email));
+        const goalsSnapshot = await getDocs(q);
 
         let achieved = 0;
         let notAchieved = 0;
@@ -53,9 +58,23 @@ const DashBoard = () => {
     };
 
     useEffect(() => {
-        fetchWorkoutData();
-        fetchGoalsData();
+        const auth = getAuth(); 
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const email = user.email;
+                setUserEmail(email);
+                fetchWorkoutData(email); 
+                fetchGoalsData(email); 
+            }
+            setLoading(false); 
+        });
+
+        return () => unsubscribe();
     }, []);
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-100 to-pink-100 flex flex-col items-center p-6">
@@ -64,17 +83,17 @@ const DashBoard = () => {
                     <h3 className="text-lg font-semibold mb-2">Total Calories Burned</h3>
                     <p className="text-3xl font-extrabold">{totalCalories} <span className="text-base font-medium">cal</span></p>
                 </div>
-                
+
                 <div className="bg-gradient-to-r from-teal-400 to-blue-400 text-white p-6 rounded-lg shadow-lg text-center transform hover:scale-105 transition-transform duration-300">
                     <h3 className="text-lg font-semibold mb-2">Total Time Spent</h3>
                     <p className="text-3xl font-extrabold">{totalTimeSpent} <span className="text-base font-medium">min</span></p>
                 </div>
-                
+
                 <div className="bg-gradient-to-r from-green-400 to-lime-500 text-white p-6 rounded-lg shadow-lg text-center transform hover:scale-105 transition-transform duration-300">
                     <h3 className="text-lg font-semibold mb-2">Achieved Goals</h3>
                     <p className="text-3xl font-extrabold">{achievedGoals}</p>
                 </div>
-                
+
                 <div className="bg-gradient-to-r from-red-400 to-pink-500 text-white p-6 rounded-lg shadow-lg text-center transform hover:scale-105 transition-transform duration-300">
                     <h3 className="text-lg font-semibold mb-2">Not Achieved Goals</h3>
                     <p className="text-3xl font-extrabold">{notAchievedGoals}</p>
@@ -85,11 +104,11 @@ const DashBoard = () => {
                 <div className="bg-white rounded-lg shadow-lg p-4 transform hover:scale-105 transition-transform duration-300">
                     <WorkoutChart totalCalories={totalCalories} />
                 </div>
-                
+
                 <div className="bg-white rounded-lg shadow-lg p-4 transform hover:scale-105 transition-transform duration-300">
                     <TimeSpentChart totalTimeSpent={totalTimeSpent} />
                 </div>
-                
+
                 <div className="bg-white rounded-lg shadow-lg p-4 transform hover:scale-105 transition-transform duration-300">
                     <GoalsChart totalGoals={totalGoals} achievedGoals={achievedGoals} />
                 </div>
